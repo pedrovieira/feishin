@@ -61,10 +61,7 @@ const useShuffleAllStore = createWithEqualityFn<ShuffleAllSlice>()(
         })),
         {
             merge: (persistedState, currentState) => merge(currentState, persistedState),
-            migrate: (
-                persisted: Partial<ShuffleAllSlice & { playbackKind?: string; songCount?: number }>,
-                version: number,
-            ) => {
+            migrate: (persisted, version: number) => {
                 if (!persisted) {
                     return persisted;
                 }
@@ -73,20 +70,7 @@ const useShuffleAllStore = createWithEqualityFn<ShuffleAllSlice>()(
                     return persisted;
                 }
 
-                const songCountFallback =
-                    typeof persisted.songCount === 'number' ? persisted.songCount : 100;
-
-                return {
-                    ...persisted,
-                    limit:
-                        persisted.limit !== undefined && persisted.limit !== null
-                            ? persisted.limit
-                            : songCountFallback,
-                    playbackKind:
-                        persisted.playbackKind === 'albums' || persisted.playbackKind === 'songs'
-                            ? persisted.playbackKind
-                            : 'songs',
-                };
+                return persisted;
             },
             name: 'store_shuffle_all',
             version: 2,
@@ -167,7 +151,7 @@ export const ShuffleAllContextModal = () => {
                     staleTime: 0,
                 });
 
-                await addToQueueByFetch(
+                addToQueueByFetch(
                     server.id,
                     albumListResult.items.map((a) => a.id),
                     LibraryItem.ALBUM,
@@ -267,7 +251,7 @@ export const ShuffleAllContextModal = () => {
             <PlayButtonGroup
                 loading={
                     (playbackKind === 'songs' && isFetching && fetchTypeRef.current) ||
-                    (playbackKind === 'albums' && isFetchingAlbums && fetchTypeRef.current)
+                    (playbackKind === 'albums' && isFetchingAlbums && fetchTypeRef.current !== null)
                 }
                 onPlay={handlePlay}
             />
