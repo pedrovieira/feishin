@@ -1,7 +1,7 @@
 import { closeAllModals, openContextModal } from '@mantine/modals';
-import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import merge from 'lodash/merge';
-import { Suspense, useMemo, useRef, useState } from 'react';
+import { Suspense, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
@@ -23,6 +23,7 @@ import { SegmentedControl } from '/@/shared/components/segmented-control/segment
 import { Select } from '/@/shared/components/select/select';
 import { Stack } from '/@/shared/components/stack/stack';
 import {
+    AlbumListQuery,
     AlbumListSort,
     LibraryItem,
     Played,
@@ -87,7 +88,6 @@ const PLAYED_DATA: { label: string; value: Played }[] = [
 export const useShuffleAllStoreActions = () => useShuffleAllStore((state) => state.actions);
 
 export const ShuffleAllContextModal = () => {
-    const queryClient = useQueryClient();
     const server = useCurrentServer();
     const { addToQueueByData, addToQueueByFetch } = usePlayer();
     const { t } = useTranslation();
@@ -104,7 +104,9 @@ export const ShuffleAllContextModal = () => {
     } = useShuffleAllStore();
     const { setStore } = useShuffleAllStoreActions();
 
-    const { isFetching, refetch } = useQuery({
+    const clampedLimit = Math.min(500, Math.max(1, limit || 100));
+
+    const { isFetching: isFetchingSongs, refetch: refetchSongs } = useQuery({
         ...randomFetchQuery({
             query: {
                 genre: genre || undefined,
@@ -121,47 +123,41 @@ export const ShuffleAllContextModal = () => {
         staleTime: 0,
     });
 
-    const fetchTypeRef = useRef<Play>(null);
-    const [isFetchingAlbums, setIsFetchingAlbums] = useState(false);
+    const { isFetching: isFetchingAlbums, refetch: refetchAlbums } = useQuery({
+        ...shuffleAlbumListQuery({
+            query: {
+                genreIds: genre ? [genre] : undefined,
+                limit: clampedLimit,
+                maxYear: enableMaxYear ? maxYear || undefined : undefined,
+                minYear: enableMinYear ? minYear || undefined : undefined,
+                musicFolderId: musicFolderId || undefined,
+                sortBy: AlbumListSort.RANDOM,
+                sortOrder: SortOrder.ASC,
+                startIndex: 0,
+            },
+            serverId: server.id,
+        }),
+        enabled: false,
+        gcTime: 0,
+        staleTime: 0,
+    });
 
-    const clampedLimit = Math.min(500, Math.max(1, limit || 100));
+    const fetchTypeRef = useRef<Play>(null);
 
     const handlePlay = async (playType: Play) => {
         fetchTypeRef.current = playType;
 
         if (playbackKind === 'albums') {
-            setIsFetchingAlbums(true);
+            const { data } = await refetchAlbums();
 
-            try {
-                const albumListResult = await queryClient.fetchQuery({
-                    ...albumQueries.list({
-                        query: {
-                            genreIds: genre ? [genre] : undefined,
-                            limit: clampedLimit,
-                            maxYear: enableMaxYear ? maxYear || undefined : undefined,
-                            minYear: enableMinYear ? minYear || undefined : undefined,
-                            musicFolderId: musicFolderId || undefined,
-                            sortBy: AlbumListSort.RANDOM,
-                            sortOrder: SortOrder.ASC,
-                            startIndex: 0,
-                        },
-                        serverId: server.id,
-                    }),
-                    gcTime: 0,
-                    staleTime: 0,
-                });
-
-                addToQueueByFetch(
-                    server.id,
-                    albumListResult.items.map((a) => a.id),
-                    LibraryItem.ALBUM,
-                    playType,
-                );
-            } finally {
-                setIsFetchingAlbums(false);
-            }
+            addToQueueByFetch(
+                server.id,
+                data?.items.map((a) => a.id) ?? [],
+                LibraryItem.ALBUM,
+                playType,
+            );
         } else {
-            const { data } = await refetch();
+            const { data } = await refetchSongs();
 
             addToQueueByData(data?.items || [], playType);
         }
@@ -248,13 +244,7 @@ export const ShuffleAllContextModal = () => {
                 />
             )}
             <Divider />
-            <PlayButtonGroup
-                loading={
-                    (playbackKind === 'songs' && isFetching && fetchTypeRef.current) ||
-                    (playbackKind === 'albums' && isFetchingAlbums && fetchTypeRef.current !== null)
-                }
-                onPlay={handlePlay}
-            />
+            <PlayButtonGroup loading={isFetchingSongs || isFetchingAlbums} onPlay={handlePlay} />
         </Stack>
     );
 };
@@ -278,6 +268,13 @@ const randomFetchQuery = (args: {
             });
         },
         queryKey: queryKeys.player.fetch(),
+    });
+};
+
+const shuffleAlbumListQuery = (args: { query: AlbumListQuery; serverId: string }) => {
+    return albumQueries.list({
+        query: args.query,
+        serverId: args.serverId,
     });
 };
 
