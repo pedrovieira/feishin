@@ -12,6 +12,7 @@ import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'reac
 import i18n from '/@/i18n/i18n';
 import { WebAudioContext } from '/@/renderer/features/player/context/webaudio-context';
 import { useCheckForUpdates } from '/@/renderer/hooks/use-check-for-updates';
+import { useMouseNavigation } from '/@/renderer/hooks/use-mouse-navigation';
 import { useNativeMenuSync } from '/@/renderer/hooks/use-native-menu-sync';
 import { useSyncSettingsToMain } from '/@/renderer/hooks/use-sync-settings-to-main';
 import { AppRouter } from '/@/renderer/router/app-router';
@@ -99,6 +100,7 @@ const AppEffects = () => (
         <CssSettingsEffect />
         <GlobalShortcutsEffect />
         <LanguageEffect />
+        <MouseNavigationEffect />
         <NativeMenuSyncEffect />
         <InputFocusEffect />
     </>
@@ -234,6 +236,12 @@ const LanguageEffect = () => {
             i18n.changeLanguage(language);
         }
     }, [language]);
+
+    return null;
+};
+
+const MouseNavigationEffect = () => {
+    useMouseNavigation();
 
     return null;
 };
