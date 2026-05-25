@@ -162,7 +162,7 @@ const AutoDJButton = () => {
             </Popover.Target>
             <Popover.Dropdown maw={320} miw={260} onClick={(e) => e.stopPropagation()} p="sm">
                 <Stack gap="sm">
-                    <Paper p="sm" radius="md">
+                    <Paper p="md" radius="md">
                         <Group align="center" gap="xs" justify="space-between" wrap="nowrap">
                             <Text fw={600} isNoSelect size="sm">
                                 {t('setting.autoDJ_enabled')}
@@ -196,6 +196,7 @@ const AutoDJButton = () => {
                         w="100%"
                     />
                     <Select
+                        comboboxProps={{ withinPortal: false }}
                         data={strategySelectData}
                         description={strategyLabels.description}
                         label={strategyLabels.title}
@@ -208,6 +209,7 @@ const AutoDJButton = () => {
                                         : { songStrategy: value as AutoDJStrategy },
                             });
                         }}
+                        size="md"
                         value={strategyValue}
                         w="100%"
                     />
@@ -225,6 +227,7 @@ const AutoDJButton = () => {
                                 },
                             })
                         }
+                        size="md"
                         value={Number(settings.itemCount)}
                     />
                     <NumberInput
@@ -241,6 +244,7 @@ const AutoDJButton = () => {
                                 },
                             })
                         }
+                        size="md"
                         value={Number(settings.timing)}
                     />
                 </Stack>
