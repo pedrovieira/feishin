@@ -2,7 +2,10 @@ import isElectron from 'is-electron';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
-const TAGS_TO_IGNORE = ['input', 'textarea', 'select', 'option'];
+const INPUT_SELECTOR = 'input, textarea, select, option';
+
+const isEditable = (target: HTMLElement | null) =>
+    target?.closest(INPUT_SELECTOR) || (target instanceof HTMLElement && target.isContentEditable);
 
 export const useMouseNavigation = () => {
     const navigate = useNavigate();
@@ -11,13 +14,7 @@ export const useMouseNavigation = () => {
         if (!isElectron()) return;
 
         const handleMouseUp = (e: MouseEvent) => {
-            const target = e.target as HTMLElement | null;
-            if (
-                target?.closest(TAGS_TO_IGNORE.join(',')) ||
-                (target instanceof HTMLElement && target.isContentEditable)
-            ) {
-                return;
-            }
+            if (isEditable(e.target as HTMLElement)) return;
 
             if (e.button === 3) {
                 e.preventDefault();
@@ -30,10 +27,26 @@ export const useMouseNavigation = () => {
             }
         };
 
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (isEditable(e.target as HTMLElement)) return;
+
+            const isCmd = e.metaKey || e.ctrlKey;
+
+            if (isCmd && e.key === '[') {
+                e.preventDefault();
+                navigate(-1);
+            } else if (isCmd && e.key === ']') {
+                e.preventDefault();
+                navigate(1);
+            }
+        };
+
         document.addEventListener('mouseup', handleMouseUp, false);
+        document.addEventListener('keydown', handleKeyDown, false);
 
         return () => {
             document.removeEventListener('mouseup', handleMouseUp, false);
+            document.removeEventListener('keydown', handleKeyDown, false);
         };
     }, [navigate]);
 };
