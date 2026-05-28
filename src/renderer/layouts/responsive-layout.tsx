@@ -6,6 +6,7 @@ import { useAppTracker } from '/@/renderer/features/analytics/hooks/use-app-trac
 import { CommandPalette } from '/@/renderer/features/search/components/command-palette';
 import { useGarbageCollection } from '/@/renderer/hooks/use-garbage-collection';
 import { HotkeyItem, useHotkeys } from '/@/renderer/hooks/use-hotkeys';
+import { useMouseNavigation } from '/@/renderer/hooks/use-mouse-navigation';
 import { useIsMobile } from '/@/renderer/hooks/use-is-mobile';
 import { DefaultLayout } from '/@/renderer/layouts/default-layout';
 import { MobileLayout } from '/@/renderer/layouts/mobile-layout/mobile-layout';
@@ -107,6 +108,7 @@ const LayoutHotkeys = () => {
     );
 
     useHotkeys(hotkeys);
+    useMouseNavigation();
 
     return <CommandPalette modalProps={modalProps} />;
 };
